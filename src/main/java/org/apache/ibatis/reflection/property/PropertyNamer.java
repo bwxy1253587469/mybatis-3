@@ -15,9 +15,9 @@
  */
 package org.apache.ibatis.reflection.property;
 
-import java.util.Locale;
-
 import org.apache.ibatis.reflection.ReflectionException;
+
+import java.util.Locale;
 
 /**
  * @author Clinton Begin
@@ -29,6 +29,7 @@ public final class PropertyNamer {
   }
 
   public static String methodToProperty(String name) {
+    // 去掉前缀 is get set
     if (name.startsWith("is")) {
       name = name.substring(2);
     } else if (name.startsWith("get") || name.startsWith("set")) {
