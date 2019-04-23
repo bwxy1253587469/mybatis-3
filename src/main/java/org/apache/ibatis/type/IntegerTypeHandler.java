@@ -22,12 +22,14 @@ import java.sql.SQLException;
 
 /**
  * @author Clinton Begin
+ * 对integer类型的数据处理
  */
 public class IntegerTypeHandler extends BaseTypeHandler<Integer> {
 
   @Override
   public void setNonNullParameter(PreparedStatement ps, int i, Integer parameter, JdbcType jdbcType)
       throws SQLException {
+    // 设置参数
     ps.setInt(i, parameter);
   }
 

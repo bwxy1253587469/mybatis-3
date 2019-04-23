@@ -25,12 +25,64 @@ import java.sql.SQLException;
  */
 public interface TypeHandler<T> {
 
+  /**
+   * 设置 PreparedStatement 的指定参数
+   * Java Type => JDBC Type
+   *
+   * @author yuhyj
+   * @date 2019/4/23 15:08
+   * @since
+   * @param ps         PreparedStatement 对象
+   * @param i          参数占位符的位置
+   * @param parameter  参数
+   * @param jdbcType   类型
+   * @return void
+   * @throws
+   */
   void setParameter(PreparedStatement ps, int i, T parameter, JdbcType jdbcType) throws SQLException;
 
+  /**
+   * 获得 ResultSet 的指定字段的值
+   *
+   * JDBC Type => Java Type
+   *
+   * @author yuhyj
+   * @date 2019/4/23 15:09
+   * @since
+   * @param rs          对象
+   * @param columnName  字段名
+   * @return T          值
+   * @throws
+   */
   T getResult(ResultSet rs, String columnName) throws SQLException;
 
+  /**
+   * 获得 ResultSet 的指定字段的值
+   * JDBC Type => Java Type
+   *
+   * @author yuhyj
+   * @date 2019/4/23 15:11
+   * @since
+   * @param rs           对象
+   * @param columnIndex  字段位置
+   * @return T
+   * @throws
+   */
   T getResult(ResultSet rs, int columnIndex) throws SQLException;
 
+  /**
+   * 获得 CallableStatement 的指定字段的值
+   *
+   * JDBC Type => Java Type
+   *
+   * @author yuhyj
+   * @date 2019/4/23 15:12
+   * @since
+   * @param cs           对象，支持调用存储过程
+   * @param columnIndex  字段位置
+   * @return T
+   * @throws
+   */
   T getResult(CallableStatement cs, int columnIndex) throws SQLException;
 
 }

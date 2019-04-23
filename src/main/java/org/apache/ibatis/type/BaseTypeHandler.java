@@ -15,13 +15,13 @@
  */
 package org.apache.ibatis.type;
 
+import org.apache.ibatis.executor.result.ResultMapException;
+import org.apache.ibatis.session.Configuration;
+
 import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-
-import org.apache.ibatis.executor.result.ResultMapException;
-import org.apache.ibatis.session.Configuration;
 
 /**
  * @author Clinton Begin
@@ -37,6 +37,7 @@ public abstract class BaseTypeHandler<T> extends TypeReference<T> implements Typ
 
   @Override
   public void setParameter(PreparedStatement ps, int i, T parameter, JdbcType jdbcType) throws SQLException {
+    // <1> 参数为空时，设置为 null 类型
     if (parameter == null) {
       if (jdbcType == null) {
         throw new TypeException("JDBC requires that the JdbcType must be specified for all nullable parameters.");
@@ -48,6 +49,7 @@ public abstract class BaseTypeHandler<T> extends TypeReference<T> implements Typ
                 "Try setting a different JdbcType for this parameter or a different jdbcTypeForNull configuration property. " +
                 "Cause: " + e, e);
       }
+      // 参数非空时，设置对应的参数
     } else {
       try {
         setNonNullParameter(ps, i, parameter, jdbcType);

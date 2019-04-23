@@ -24,12 +24,15 @@ import java.util.Date;
 
 /**
  * @author Clinton Begin
+ * java.util.Date 和 java.sql.Timestamp 的互相转换。
  */
 public class DateTypeHandler extends BaseTypeHandler<Date> {
 
   @Override
   public void setNonNullParameter(PreparedStatement ps, int i, Date parameter, JdbcType jdbcType)
       throws SQLException {
+    // 将 Date 转换成 Timestamp 类型
+    // 然后设置到 ps 中
     ps.setTimestamp(i, new Timestamp(parameter.getTime()));
   }
 

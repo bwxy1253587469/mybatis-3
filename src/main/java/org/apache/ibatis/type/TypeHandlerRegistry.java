@@ -15,6 +15,11 @@
  */
 package org.apache.ibatis.type;
 
+import org.apache.ibatis.binding.MapperMethod.ParamMap;
+import org.apache.ibatis.io.ResolverUtil;
+import org.apache.ibatis.io.Resources;
+import org.apache.ibatis.reflection.Jdk;
+
 import java.io.InputStream;
 import java.io.Reader;
 import java.lang.reflect.Constructor;
@@ -43,14 +48,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.ibatis.binding.MapperMethod.ParamMap;
-import org.apache.ibatis.io.ResolverUtil;
-import org.apache.ibatis.io.Resources;
-import org.apache.ibatis.reflection.Jdk;
-
 /**
  * @author Clinton Begin
  * @author Kazuki Shimizu
+ * 保存数据类型和typeHandler的对应关系
  */
 public final class TypeHandlerRegistry {
 
@@ -372,14 +373,18 @@ public final class TypeHandlerRegistry {
   }
 
   private void register(Type javaType, JdbcType jdbcType, TypeHandler<?> handler) {
+    // <1> 添加 handler 到 TYPE_HANDLER_MAP 中
     if (javaType != null) {
       Map<JdbcType, TypeHandler<?>> map = TYPE_HANDLER_MAP.get(javaType);
+      // 获得 Java Type 对应的 map
       if (map == null || map == NULL_TYPE_HANDLER_MAP) {
         map = new HashMap<JdbcType, TypeHandler<?>>();
         TYPE_HANDLER_MAP.put(javaType, map);
       }
+      // 添加到 handler 中 map 中
       map.put(jdbcType, handler);
     }
+    // <2> 添加 handler 到 ALL_TYPE_HANDLERS_MAP 中
     ALL_TYPE_HANDLERS_MAP.put(handler.getClass(), handler);
   }
 
@@ -423,6 +428,7 @@ public final class TypeHandlerRegistry {
 
   @SuppressWarnings("unchecked")
   public <T> TypeHandler<T> getInstance(Class<?> javaTypeClass, Class<?> typeHandlerClass) {
+    // 获得 Class 类型的构造方法
     if (javaTypeClass != null) {
       try {
         Constructor<?> c = typeHandlerClass.getConstructor(Class.class);
@@ -433,6 +439,7 @@ public final class TypeHandlerRegistry {
         throw new TypeException("Failed invoking constructor for handler " + typeHandlerClass, e);
       }
     }
+    // <2> 获得空参的构造方法
     try {
       Constructor<?> c = typeHandlerClass.getConstructor();
       return (TypeHandler<T>) c.newInstance();
