@@ -15,10 +15,6 @@
  */
 package org.apache.ibatis.executor.statement;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
-
 import org.apache.ibatis.executor.ErrorContext;
 import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.executor.ExecutorException;
@@ -32,6 +28,10 @@ import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
 import org.apache.ibatis.type.TypeHandlerRegistry;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 /**
  * @author Clinton Begin
@@ -51,16 +51,21 @@ public abstract class BaseStatementHandler implements StatementHandler {
   protected BoundSql boundSql;
 
   protected BaseStatementHandler(Executor executor, MappedStatement mappedStatement, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler, BoundSql boundSql) {
+    // 获得 Configuration 对象
     this.configuration = mappedStatement.getConfiguration();
     this.executor = executor;
     this.mappedStatement = mappedStatement;
     this.rowBounds = rowBounds;
 
+    // 获得 TypeHandlerRegistry 和 ObjectFactory 对象
     this.typeHandlerRegistry = configuration.getTypeHandlerRegistry();
     this.objectFactory = configuration.getObjectFactory();
 
+    // <1> 如果 boundSql 为空，一般是写类操作，例如：insert、update、delete ，则先获得自增主键，然后再创建 BoundSql 对象
     if (boundSql == null) { // issue #435, get the key before calculating the statement
+      // <1.1> 获得自增主键
       generateKeys(parameterObject);
+      // <1.2> 创建 BoundSql 对象
       boundSql = mappedStatement.getBoundSql(parameterObject);
     }
 
@@ -85,8 +90,11 @@ public abstract class BaseStatementHandler implements StatementHandler {
     ErrorContext.instance().sql(boundSql.getSql());
     Statement statement = null;
     try {
+      // <1> 创建 Statement 对象
       statement = instantiateStatement(connection);
+      // 设置超时时间
       setStatementTimeout(statement, transactionTimeout);
+      // 设置 fetchSize
       setFetchSize(statement);
       return statement;
     } catch (SQLException e) {
