@@ -15,9 +15,6 @@
  */
 package org.apache.ibatis.executor;
 
-import java.sql.SQLException;
-import java.util.List;
-
 import org.apache.ibatis.cache.Cache;
 import org.apache.ibatis.cache.CacheKey;
 import org.apache.ibatis.cache.TransactionalCacheManager;
@@ -31,6 +28,9 @@ import org.apache.ibatis.reflection.MetaObject;
 import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
 import org.apache.ibatis.transaction.Transaction;
+
+import java.sql.SQLException;
+import java.util.List;
 
 /**
  * @author Clinton Begin
@@ -78,8 +78,11 @@ public class CachingExecutor implements Executor {
 
   @Override
   public <E> List<E> query(MappedStatement ms, Object parameterObject, RowBounds rowBounds, ResultHandler resultHandler) throws SQLException {
+    // 获得 BoundSql 对象
     BoundSql boundSql = ms.getBoundSql(parameterObject);
+    // 创建 CacheKey 对象
     CacheKey key = createCacheKey(ms, parameterObject, rowBounds, boundSql);
+    // 查询
     return query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
   }
 
@@ -94,18 +97,25 @@ public class CachingExecutor implements Executor {
       throws SQLException {
     Cache cache = ms.getCache();
     if (cache != null) {
+      // <2.1> 如果需要清空缓存，则进行清空
       flushCacheIfRequired(ms);
       if (ms.isUseCache() && resultHandler == null) {
+        // 暂时忽略，存储过程相关
         ensureNoOutParams(ms, boundSql);
+        // <2.3> 从二级缓存中，获取结果
         @SuppressWarnings("unchecked")
         List<E> list = (List<E>) tcm.getObject(cache, key);
         if (list == null) {
+          // <2.4.1> 如果不存在，则从数据库中查询
           list = delegate.<E> query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
+          // <2.4.2> 缓存结果到二级缓存中
           tcm.putObject(cache, key, list); // issue #578 and #116
         }
+        // <2.5> 如果存在，则直接返回结果
         return list;
       }
     }
+    // <3> 不使用缓存，则从数据库中查询
     return delegate.<E> query(ms, parameterObject, rowBounds, resultHandler, key, boundSql);
   }
 

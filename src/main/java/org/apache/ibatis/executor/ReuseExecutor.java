@@ -15,14 +15,6 @@
  */
 package org.apache.ibatis.executor;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.ibatis.cursor.Cursor;
 import org.apache.ibatis.executor.statement.StatementHandler;
 import org.apache.ibatis.logging.Log;
@@ -32,6 +24,14 @@ import org.apache.ibatis.session.Configuration;
 import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
 import org.apache.ibatis.transaction.Transaction;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author Clinton Begin
@@ -47,8 +47,11 @@ public class ReuseExecutor extends BaseExecutor {
   @Override
   public int doUpdate(MappedStatement ms, Object parameter) throws SQLException {
     Configuration configuration = ms.getConfiguration();
+    // 创建 StatementHandler 对象
     StatementHandler handler = configuration.newStatementHandler(this, ms, parameter, RowBounds.DEFAULT, null, null);
+    // <1> 初始化 StatementHandler 对象
     Statement stmt = prepareStatement(handler, ms.getStatementLog());
+    // 执行 StatementHandler  ，进行读操作
     return handler.update(stmt);
   }
 
@@ -81,14 +84,21 @@ public class ReuseExecutor extends BaseExecutor {
     Statement stmt;
     BoundSql boundSql = handler.getBoundSql();
     String sql = boundSql.getSql();
+    // 存在
     if (hasStatementFor(sql)) {
+      // / <1.1> 从缓存中获得 Statement 或 PrepareStatement 对象
       stmt = getStatement(sql);
+      // <1.2> 设置事务超时时间
       applyTransactionTimeout(stmt);
     } else {
+      // <2.1> 获得 Connection 对象
       Connection connection = getConnection(statementLog);
+      // <2.2> 创建 Statement 或 PrepareStatement 对象
       stmt = handler.prepare(connection, transaction.getTimeout());
+      // <2.3> 添加到缓存中
       putStatement(sql, stmt);
     }
+    // <2> 设置 SQL 上的参数，例如 PrepareStatement 对象上的占位符
     handler.parameterize(stmt);
     return stmt;
   }

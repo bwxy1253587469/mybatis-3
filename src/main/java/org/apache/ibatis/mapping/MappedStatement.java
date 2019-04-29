@@ -15,10 +15,6 @@
  */
 package org.apache.ibatis.mapping;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 import org.apache.ibatis.cache.Cache;
 import org.apache.ibatis.executor.keygen.Jdbc3KeyGenerator;
 import org.apache.ibatis.executor.keygen.KeyGenerator;
@@ -28,20 +24,38 @@ import org.apache.ibatis.logging.LogFactory;
 import org.apache.ibatis.scripting.LanguageDriver;
 import org.apache.ibatis.session.Configuration;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 /**
  * @author Clinton Begin
+ * 每个MappedStatement对象对应xml中写的sql
+ * 即<select></select> <update></update>等
  */
 public final class MappedStatement {
 
+
+  // 资源路径
   private String resource;
+  // 各种相关的属性 类似于spring中的context
   private Configuration configuration;
+  //节点中的id属性加要命名空间
   private String id;
+  //直接从节点属性中取
+  // 这是一个给驱动的提示，尝试让驱动程序每次批量返回的结果行数和这个设置值相等。 默认值为未设置（unset）（依赖驱动）。
   private Integer fetchSize;
+  // 这个设置是在抛出异常之前，驱动程序等待数据库返回请求结果的秒数。默认值为未设置（unset）（依赖驱动）。
   private Integer timeout;
+  // sql类型 预处理等
   private StatementType statementType;
+  // 返回类型
   private ResultSetType resultSetType;
+  // 提供获取sql的接口
   private SqlSource sqlSource;
+  // 缓存
   private Cache cache;
+  //
   private ParameterMap parameterMap;
   private List<ResultMap> resultMaps;
   private boolean flushCacheRequired;

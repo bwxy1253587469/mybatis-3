@@ -15,14 +15,6 @@
  */
 package org.apache.ibatis.executor;
 
-import java.sql.BatchUpdateException;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 import org.apache.ibatis.cursor.Cursor;
 import org.apache.ibatis.executor.keygen.Jdbc3KeyGenerator;
 import org.apache.ibatis.executor.keygen.KeyGenerator;
@@ -35,16 +27,44 @@ import org.apache.ibatis.session.ResultHandler;
 import org.apache.ibatis.session.RowBounds;
 import org.apache.ibatis.transaction.Transaction;
 
+import java.sql.BatchUpdateException;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 /**
- * @author Jeff Butler 
+ * @author Jeff Butler
+ * FROM 祖大俊 《Mybatis3.3.x技术内幕（四）：五鼠闹东京之执行器Executor设计原本》
+ *
+ * 执行update（没有select，JDBC批处理不支持select），将所有sql都添加到批处理中（addBatch()），
+ * 等待统一执行（executeBatch()），它缓存了多个Statement对象，每个Statement对象都是addBatch()完毕后，
+ * 等待逐一执行executeBatch()批处理的；BatchExecutor相当于维护了多个桶，每个桶里都装了很多属于自己的SQL，
+ * 就像苹果蓝里装了很多苹果，番茄蓝里装了很多番茄，最后，再统一倒进仓库。（可以是Statement或PrepareStatement对象）
  */
 public class BatchExecutor extends BaseExecutor {
 
   public static final int BATCH_UPDATE_RETURN_VALUE = Integer.MIN_VALUE + 1002;
 
+  /**
+   * Statement 数组
+   */
   private final List<Statement> statementList = new ArrayList<Statement>();
+  /**
+   * BatchResult 数组
+   *
+   * 每一个 BatchResult 元素，对应一个 {@link #statementList} 的 Statement 元素
+   */
   private final List<BatchResult> batchResultList = new ArrayList<BatchResult>();
+  /**
+   * 当前 SQL
+   */
   private String currentSql;
+  /**
+   * 当前 MappedStatement 对象
+   */
   private MappedStatement currentStatement;
 
   public BatchExecutor(Configuration configuration, Transaction transaction) {
@@ -54,20 +74,30 @@ public class BatchExecutor extends BaseExecutor {
   @Override
   public int doUpdate(MappedStatement ms, Object parameterObject) throws SQLException {
     final Configuration configuration = ms.getConfiguration();
+    // <1> 创建 StatementHandler 对象
     final StatementHandler handler = configuration.newStatementHandler(this, ms, parameterObject, RowBounds.DEFAULT, null, null);
     final BoundSql boundSql = handler.getBoundSql();
     final String sql = boundSql.getSql();
     final Statement stmt;
+    // <2> 如果匹配最后一次 currentSql 和 currentStatement ，则聚合到 BatchResult 中
     if (sql.equals(currentSql) && ms.equals(currentStatement)) {
+      // <2.1> 获得最后一次的 Statement 对象
       int last = statementList.size() - 1;
       stmt = statementList.get(last);
+      // <2.2> 设置事务超时时间
       applyTransactionTimeout(stmt);
+      // <2.3> 设置 SQL 上的参数，例如 PrepareStatement 对象上的占位符
      handler.parameterize(stmt);//fix Issues 322
+      // <2.4> 获得最后一次的 BatchResult 对象，并添加参数到其中
       BatchResult batchResult = batchResultList.get(last);
       batchResult.addParameterObject(parameterObject);
+      // <3> 如果不匹配最后一次 currentSql 和 currentStatement ，则新建 BatchResult 对象
     } else {
+      // <3.1> 获得 Connection
       Connection connection = getConnection(ms.getStatementLog());
+      // <3.2> 创建 Statement 或 PrepareStatement 对象
       stmt = handler.prepare(connection, transaction.getTimeout());
+      // <3.3> 设置 SQL 上的参数，例如 PrepareStatement 对象上的占位符
       handler.parameterize(stmt);    //fix Issues 322
       currentSql = sql;
       currentStatement = ms;
